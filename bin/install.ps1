@@ -16,10 +16,10 @@ param (
 [string]$version
 )
 
-$target = Join-Path $installDir "mise-hello-world.ps1"
+$target = Join-Path $installDir "hello-world.ps1"
 
 $content = @"
-Write-Output 'Hello from mise-hello-world v$version'
+Write-Output 'Hello from hello-world v$version'
 "@
 
 Set-Content -Path $target -Value $content -Encoding UTF8
