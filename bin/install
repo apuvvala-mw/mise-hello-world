@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+
+# https://s3.amazonaws.com/julialang/bin/osx/x64/0.5/julia-0.5.0-osx10.7+.dmg
+
+set -e
+
+# 1.7.0-beta3 is the first version to include a native ARM64 Mac package.
+MIN_MAC_ARM_VERSION="1.7.0-beta3"
+
+function get_arch_short {
+  local version="$1"
+  local arch_long=$(uname -m)
+
+  case "$arch_long" in
+    "armv7l" | "aarch64")
+      local arch_short=$arch_long
+      ;;
+    "i686")
+      local arch_short="x86"
+      ;;
+    "x86_64")
+      local arch_short="x64"
+      ;;
+    "arm64")
+      if [ "$(get_os)" = "mac" ]; then
+        if [ "$version" = "nightly" ]; then # mac and nightly
+          # For Julia nightly, we know that native binaries for ARM64 Mac will be available.
+          # So, for Julia nightly, there is no need to perform the `is_minimum_version` check.
+          local arch_short="aarch64"
+        else # mac, but not nightly
+          # If the version is not Julia nightly, then we do need to perform the `is_minimum_version`
+          # check.
+          if is_minimum_version "$MIN_MAC_ARM_VERSION" "$version"; then
+            local arch_short="aarch64"
+          else
+            local arch_short="x64"
+          fi
+        fi
+        local arch_short="aarch64"
+      else # not mac
+        local arch_short="x64"
+      fi
+      ;;
+  esac
+
+  echo $arch_short
+}
+
+is_minimum_version() {
+  local minimum="$1"
+  local compare="$2"
+
+  # Check the numbered components in descending order.
+  for i in $(seq 3); do
+    local min="$(echo $minimum | cut -d. -f$i | cut -d- -f1)"
+    local cmp="$(echo $compare | cut -d. -f$i | cut -d- -f1)"
+    [ "$cmp" -gt "$min" ] && return 0
+    [ "$min" -gt "$cmp" ] && return 1
+  done
+
+  # Check the prerelease version.
+  # How prereleases work:
+  # 1. For versions A=X-PRE and B=X, A < B for any PRE.
+  # 2. A prerelease with no number is considered to be the first of its type.
+  # 3. The order of prerelease types from oldest to newest is alpha, beta, rc.
+  # Examples:
+  # - 1.2.3 > 1.2.3-beta3
+  # - 1.2.3 > 1.2.3-beta3
+  # - 1.2.3-rc1 > 1.2.3-beta1
+  # - 1.2.3-rc1 > 1.2.3-rc
+
+  local minimum_prerelease="$(echo $minimum | grep - | cut -d- -f2)"
+  local compare_prerelease="$(echo $compare | grep - | cut -d- -f2)"
+
+  # 1: No matter what the minimum prerelease is, it's not newer than no prerelease.
+  [ -z "$compare_prerelease" ] && return 0
+  # 1: Since the compare prerelease is set to something, it's older than no prerelease.
+  [ -z "$minimum_prerelease" ] && return 1
+
+  local minimum_prerelease_type="$(echo $minimum_prerelease | egrep -o '\D+')"
+  local compare_prerelease_type="$(echo $compare_prerelease | egrep -o '\D+')"
+  local minimum_prerelease_num="$(echo $minimum_prerelease | egrep -o '\d+')"
+  local compare_prerelease_num="$(echo $compare_prerelease | egrep -o '\d+')"
+
+  if [ "$minimum_prerelease_type" = "$compare_prerelease_type" ]; then
+    # 2: The minimum prerelease is the first of its type.
+    [ -z "$minimum_prerelease_num" ] && return 0
+    # 2: The minimum prerelease number is numbered and the compare is not.
+    [ -z "$compare_prerelease_num" ] && return 1
+    [ "$compare_prerelease_num" -ge "$minimum_prerelease_num" ] && return 0 || return 1
+  elif [ "$compare_prerelease_type" = "rc" ]; then
+    # 3: Minimum is older than an rc.
+    return 0
+  elif [ "$minimum_prerelease_type" = "rc" ]; then
+    # 3: Compare is older than an rc.
+    return 1
+  elif [ "$compare_prerelease_type" = "beta" ]; then
+    return 0
+  elif [ "$minimum_prerelease_type" = "beta" ]; then
+    return 1
+  else
+    return 1
+  fi
+}
+
+function get_os {
+  local uname_str="$(uname)"
+
+  case $uname_str in
+    "Darwin")
+      local os="mac"
+      ;;
+    *)
+      local os="$(echo $uname_str | tr '[:upper:]' '[:lower:]')"
+      ;;
+  esac
+
+  echo $os
+}
+
+function get_file_extension {
+
+  case "$(get_os)" in
+    "mac")
+      local extension="dmg"
+      ;;
+    *)
+      local extension="tar.gz"
+      ;;
+  esac
+
+  echo $extension
+}
+
+function get_url_from_version {
+  local version=$1
+
+  local version_trim=${version%.*}
+  local arch_long=$(uname -m)
+  local arch_short=$(get_arch_short "$version")
+  local os=$(get_os)
+  local extension=$(get_file_extension)
+
+  case $os in
+    "mac")
+      echo "$version" 1>&2
+      if [ "$arch_long" = "arm64" ] && is_minimum_version "$MIN_MAC_ARM_VERSION" "$version"; then
+        local version_postfix="macaarch64"
+      else
+        local version_postfix="mac64"
+      fi
+      ;;
+    *)
+      local version_postfix="$os-$arch_long"
+      ;;
+  esac
+
+  echo "https://julialang-s3.julialang.org/bin/$os/$arch_short/$version_trim/julia-$version-$version_postfix.$extension"
+}
+
+function get_url_from_nightly {
+  local os=$(get_os)
+  local arch_short=$(get_arch_short "$version")
+  local extension=$(get_file_extension)
+
+  case "$(get_os)" in
+    "mac")
+      # For Julia nightly, we know that native binaries for ARM64 Mac will be available.
+      # So, for Julia nightly, there is no need to perform the `is_minimum_version` check.
+      if [ "$(uname -m)" = "arm64" ]; then
+        local version_postfix="macaarch64"
+      else
+        local version_postfix="mac64"
+      fi
+      ;;
+    "linux")
+      case "$(uname -m)" in
+        "aarch64")
+          local version_postfix="linuxaarch64"
+          ;;
+        "i686")
+          local version_postfix="linux32"
+          ;;
+        "x86_64")
+          local version_postfix="linux64"
+          ;;
+        *)
+          echo "Error: unrecognized os or arch." >&2
+          exit 1
+          ;;
+      esac
+      ;;
+    esac
+
+  echo "https://julialangnightlies-s3.julialang.org/bin/$os/$arch_short/julia-latest-$version_postfix.$extension"
+}
+
+function download_binary_archive {
+  local version=$1
+
+  local tmp_download_dir="$(mktemp -d -t asdf-julia.XXXXXX)"
+  local tmp_download_file="$tmp_download_dir/julia.archive"
+
+  if [[ $version == "nightly" ]]; then
+    local url="$(get_url_from_nightly)"
+  else
+    local url="$(get_url_from_version $version)"
+  fi
+
+  echo "Downloading from:" >&2
+  echo $url >&2
+  curl -L --fail "$url" > "$tmp_download_file"
+
+  echo $tmp_download_file
+}
+
+function install_julia {
+    local install_type=$1
+    local version=$2
+    local install_path=$3
+
+    tmp_download_file="$(download_binary_archive $version)"
+    tmp_download_dir="$(dirname $tmp_download_file)"
+
+    if [ "$(uname)" == "Darwin" ]; then
+      local volume_path=$(
+      hdiutil mount "$tmp_download_file" `# mount the dmg`\
+        | grep Volume `# find the volume row in the output`\
+        | egrep -o '/Volumes[^\n]+' `# store the volume's path`\
+      )
+
+      local source_path=$(find "$volume_path" -type d -print 2> /dev/null `# find all directories in the new volume, redirect the errors so they don't interfere with the grep` \
+        | grep 'Contents/Resources/julia' `#find the julia directory` \
+        | head -n 1
+      )
+
+      cp -R $source_path/* $install_path/
+      hdiutil unmount "$volume_path"
+    else
+      local untar_list="$(tar -xvf "$tmp_download_file" -C $tmp_download_dir)"
+      local untar_dir="$tmp_download_dir/$(echo $untar_list | cut -f1 -d"/" | head -n 1)"
+      mv $untar_dir/* $install_path/
+    fi
+}
+install_julia $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
