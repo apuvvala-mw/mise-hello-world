@@ -1,0 +1,10 @@
+[plugin]
+name = "hello-world-2"
+type = "external"
+version_command = ["bash", "bin/list-all"]
+
+[install]
+script = ["bash", "bin/install"]
+
+[exec-env]
+script = ["bash", "bin/exec-env"]
