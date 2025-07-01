@@ -1,5 +1,5 @@
 [plugin]
-name = "mise-hello-world"
+name = "hello-world"
 type = "external"
 version_command = ["pwsh", "-File", "bin/install.ps1", "--list-available"]
 
