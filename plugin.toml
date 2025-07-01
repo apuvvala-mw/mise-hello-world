@@ -1,0 +1,10 @@
+[plugin]
+name = "mise-hello-world"
+type = "external"
+version_command = ["pwsh", "-File", "bin/install.ps1", "--list-available"]
+
+[install]
+script = ["pwsh", "-File", "bin/install.ps1", "--install"]
+
+[exec-env]
+script = ["pwsh", "-File", "bin/exec-env.ps1"]
