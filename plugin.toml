@@ -5,6 +5,9 @@ version_command = ["bash", "bin/list-all"]
 
 [install]
 script = ["bash", "bin/install"]
+args = ["{install_path}", "{version}"]
+
 
 [exec-env]
 script = ["bash", "bin/exec-env"]
+args = ["{install_path}", "{version}"]
