@@ -1,21 +1,18 @@
 #!/usr/bin/env bash
 
-INSTALL_PATH="$1"
-VERSION="$2"
+echo "[DEBUG] ASDF_INSTALL_PATH='$ASDF_INSTALL_PATH'"
+echo "[DEBUG] ASDF_INSTALL_VERSION='$ASDF_INSTALL_VERSION'"
 
-echo "[DEBUG] INSTALL_PATH='$INSTALL_PATH'"
-echo "[DEBUG] VERSION='$VERSION'"
-
-if [[ -z "$INSTALL_PATH" || -z "$VERSION" ]]; then
-  echo "[ERROR] Missing INSTALL_PATH or VERSION"
+if [[ -z "$ASDF_INSTALL_PATH" || -z "$ASDF_INSTALL_VERSION" ]]; then
+  echo "[ERROR] Missing ASDF_INSTALL_PATH or ASDF_INSTALL_VERSION"
   exit 1
 fi
 
-mkdir -p "$INSTALL_PATH"
+mkdir -p "$ASDF_INSTALL_PATH"
 
-cat > "$INSTALL_PATH/hello-world.sh" <<EOF
+cat > "$ASDF_INSTALL_PATH/hello-world.sh" <<EOF
 #!/usr/bin/env bash
-echo "Hello from hello-world v$VERSION"
+echo "Hello from hello-world v$ASDF_INSTALL_VERSION"
 EOF
 
-chmod +x "$INSTALL_PATH/hello-world.sh"
+chmod +x "$ASDF_INSTALL_PATH/hello-world.sh"
