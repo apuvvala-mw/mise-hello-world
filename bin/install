@@ -3,7 +3,15 @@
 INSTALL_DIR="$1"
 VERSION="$2"
 
-mkdir -p "$INSTALL_DIR"
+echo "[DEBUG] INSTALL_DIR='$INSTALL_DIR'"
+echo "[DEBUG] VERSION='$VERSION'"
+
+if [[ -z "$INSTALL_DIR" || -z "$VERSION" ]]; then
+  echo "[ERROR] Missing install dir or version"
+  exit 1
+fi
+
+mkdir -p "$INSTALL_DIR" || { echo "[ERROR] mkdir failed"; exit 1; }
 
 cat > "$INSTALL_DIR/hello-world.sh" <<EOF
 #!/usr/bin/env bash
