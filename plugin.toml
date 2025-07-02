@@ -1,6 +1,6 @@
 [plugin]
 name = "hello-world"
-type = "asdf"
+type = "core"
 version_command = ["bash", "bin/list-all"]
 
 [install]
