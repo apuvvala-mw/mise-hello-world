@@ -1,21 +1,18 @@
 #!/usr/bin/env bash
 
-INSTALL_DIR="$1"
-VERSION="$2"
-
-echo "[DEBUG] INSTALL_DIR='$INSTALL_DIR'"
+echo "[DEBUG] INSTALL_PATH='$INSTALL_PATH'"
 echo "[DEBUG] VERSION='$VERSION'"
 
-if [[ -z "$INSTALL_DIR" || -z "$VERSION" ]]; then
-  echo "[ERROR] Missing install dir or version"
+if [[ -z "$INSTALL_PATH" || -z "$VERSION" ]]; then
+  echo "[ERROR] Missing INSTALL_PATH or VERSION"
   exit 1
 fi
 
-mkdir -p "$INSTALL_DIR" || { echo "[ERROR] mkdir failed"; exit 1; }
+mkdir -p "$INSTALL_PATH"
 
-cat > "$INSTALL_DIR/hello-world.sh" <<EOF
+cat > "$INSTALL_PATH/hello-world.sh" <<EOF
 #!/usr/bin/env bash
 echo "Hello from hello-world v$VERSION"
 EOF
 
-chmod +x "$INSTALL_DIR/hello-world.sh"
+chmod +x "$INSTALL_PATH/hello-world.sh"
