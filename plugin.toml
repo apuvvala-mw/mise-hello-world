@@ -1,5 +1,5 @@
 [plugin]
-name = "hello-world-2"
+name = "hello-world"
 type = "external"
 version_command = ["bash", "bin/list-all"]
 
